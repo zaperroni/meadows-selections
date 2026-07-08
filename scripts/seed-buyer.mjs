@@ -1,5 +1,6 @@
 // Creates a buyer row with a unique, hard-to-guess portal link.
 // Usage: node --env-file=.env.local scripts/seed-buyer.mjs "Henderson" "14" ["Meadows at Briarcliff"]
+// Prints a production link by default; override with APP_BASE_URL=http://localhost:3000 for local testing.
 import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
@@ -34,6 +35,6 @@ if (error) {
   process.exit(1);
 }
 
-const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
+const baseUrl = process.env.APP_BASE_URL || "https://meadows-selections.vercel.app";
 console.log(`Created buyer: ${data.family_name} — Lot ${data.lot}`);
 console.log(`Portal link:   ${baseUrl}/portal/${data.token}`);
