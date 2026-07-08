@@ -40,7 +40,7 @@ export default function AddBuyerForm() {
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
             placeholder="Henderson"
-            className="rounded border border-zinc-300 px-2 py-1.5 text-sm"
+            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400"
             required
           />
         </div>
@@ -50,7 +50,7 @@ export default function AddBuyerForm() {
             value={lot}
             onChange={(e) => setLot(e.target.value)}
             placeholder="14"
-            className="w-24 rounded border border-zinc-300 px-2 py-1.5 text-sm"
+            className="w-24 rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400"
             required
           />
         </div>
@@ -59,7 +59,7 @@ export default function AddBuyerForm() {
           <input
             value={community}
             onChange={(e) => setCommunity(e.target.value)}
-            className="rounded border border-zinc-300 px-2 py-1.5 text-sm"
+            className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400"
           />
         </div>
         <button
