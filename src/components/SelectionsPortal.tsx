@@ -35,6 +35,7 @@ import {
 } from "@/lib/catalog";
 import { chooseSelection, setUpgradeSelection, addNote, signSelections } from "@/lib/actions";
 import type { Buyer, SelectionsMap, UpgradeSelectionsMap, NotesMap, NoteEntry } from "@/lib/types";
+import OptionSwatch from "@/components/OptionSwatch";
 
 function formatSignedAt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -388,10 +389,7 @@ export default function SelectionsPortal({
                         <Check size={12} color="#fff" />
                       </div>
                     )}
-                    <div
-                      className="h-20 w-full mb-3"
-                      style={{ background: opt.swatch, borderRadius: 3 }}
-                    />
+                    <OptionSwatch photoKey={`${active.id}__${opt.id}`} swatch={opt.swatch} />
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{opt.name}</div>
                     <div style={{ fontSize: 12, color: MUTED, marginBottom: 6 }}>
                       {opt.desc}

@@ -29,7 +29,11 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://meadows-selections.vercel.app/\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:definitely-wrong-guess\" \"https://meadows-selections.vercel.app/\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://meadows-selections.vercel.app/portal/henderson-lot14-DhrUe4c\")",
-      "Bash(git commit --allow-empty -m ' *)"
+      "Bash(git commit --allow-empty -m ' *)",
+      "Bash(curl -s -H \"Authorization: Bearer re_CFjwdTVb_juumfrPz2PoDXMEskMxfwC76\" \"https://api.resend.com/emails?limit=5\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:wrongpass\" \"https://meadows-selections.vercel.app/\")",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)"
     ]
   }
 }
