@@ -161,16 +161,6 @@ export default function SelectionsPortal({
     setNotes((n) => ({ ...n, [categoryId]: [...(n[categoryId] || []), entry] }));
     setDraft("");
     addNote(buyer.token, categoryId, "buyer", text).catch((err) => console.error(err));
-
-    setTimeout(() => {
-      const replyText =
-        "Got it — logged against this selection, we'll follow up here shortly.";
-      setNotes((n) => ({
-        ...n,
-        [categoryId]: [...(n[categoryId] || []), { author: "builder", text: replyText, time: "Just now" }],
-      }));
-      addNote(buyer.token, categoryId, "builder", replyText).catch((err) => console.error(err));
-    }, 1100);
   };
 
   const canSign = signerName.trim().length > 1 && agreed && !signedAt;

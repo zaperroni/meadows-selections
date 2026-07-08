@@ -2,16 +2,25 @@
 
 import { randomBytes } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { CATEGORIES, UPGRADE_GROUPS } from "@/lib/catalog";
+import { notifyBuilderOfQuestion } from "@/lib/notify";
 import type { Buyer } from "@/lib/types";
 
 async function getBuyerByToken(token: string) {
   const { data, error } = await supabaseAdmin
     .from("buyers")
-    .select("id, signed_at")
+    .select("id, signed_at, token, family_name, lot, community")
     .eq("token", token)
     .single();
   if (error || !data) throw new Error("Buyer not found for this link.");
   return data;
+}
+
+function categoryLabel(categoryId: string): string {
+  const category = CATEGORIES.find((c) => c.id === categoryId);
+  if (category) return category.name;
+  const group = UPGRADE_GROUPS.find((g) => g.id === categoryId);
+  return group ? group.name : categoryId;
 }
 
 export async function chooseSelection(
@@ -63,6 +72,16 @@ export async function addNote(
     text,
   });
   if (error) throw new Error(error.message);
+
+  if (author === "buyer") {
+    await notifyBuilderOfQuestion({
+      familyName: buyer.family_name,
+      lot: buyer.lot,
+      categoryLabel: categoryLabel(categoryId),
+      question: text,
+      token: buyer.token,
+    });
+  }
 }
 
 export async function createBuyer(

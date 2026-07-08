@@ -25,7 +25,11 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:wrongpass\" \"http://localhost:3000/\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:cedar-ridge-3825\" \"http://localhost:3000/\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/portal/henderson-lot14-DhrUe4c\")",
-      "Bash(curl -s -u \"admin:cedar-ridge-3825\" \"http://localhost:3000/\")"
+      "Bash(curl -s -u \"admin:cedar-ridge-3825\" \"http://localhost:3000/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://meadows-selections.vercel.app/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:definitely-wrong-guess\" \"https://meadows-selections.vercel.app/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://meadows-selections.vercel.app/portal/henderson-lot14-DhrUe4c\")",
+      "Bash(git commit --allow-empty -m ' *)"
     ]
   }
 }
