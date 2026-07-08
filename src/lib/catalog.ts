@@ -39,6 +39,7 @@ export interface CategoryOption {
   desc: string;
   included: boolean;
   upgradeCost?: number;
+  priceTBD?: boolean;
   swatch: string;
 }
 
@@ -372,6 +373,14 @@ export const CATEGORIES: Category[] = [
         desc: "Natural granite, warm golden-tan speckled finish, bullnose edge.",
         included: true,
         swatch: "radial-gradient(circle at 30% 30%, #C9A96E 0%, #A98C54 55%, #8C7142 100%)",
+      },
+      {
+        id: "other-tbd",
+        name: "Other — Price TBD",
+        desc: "Any countertop material not listed above. Price to be determined based on the customer's selection.",
+        included: false,
+        priceTBD: true,
+        swatch: "repeating-linear-gradient(90deg, #8C8272 0px, #8C8272 14px, #766C5D 14px, #766C5D 18px)",
       },
     ],
   },

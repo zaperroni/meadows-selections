@@ -117,6 +117,15 @@ export default function SelectionsPortal({
 
   const allUpgradesTotal = UPGRADE_GROUPS.reduce((sum, g) => sum + upgradeGroupTotal(g), 0);
   const grandUpgradesTotal = totals.upgrades + allUpgradesTotal;
+  const hasTBDSelected = CATEGORIES.some((cat) => lineFor(cat).chosen?.priceTBD);
+
+  const upgradesSummary = grandUpgradesTotal > 0 && hasTBDSelected
+    ? `+${fmt(grandUpgradesTotal)} in upgrades + price TBD items`
+    : grandUpgradesTotal > 0
+    ? `+${fmt(grandUpgradesTotal)} in upgrades`
+    : hasTBDSelected
+    ? "Upgrades selected — price TBD"
+    : "No upgrades selected";
 
   const choose = (catId: string, optId: string) => {
     if (signedAt) return;
@@ -211,7 +220,7 @@ export default function SelectionsPortal({
               {madeCount} of {CATEGORIES.length} selected
             </div>
             <div style={{ fontFamily: mono, fontSize: 13, color: "#F3EFE4" }}>
-              {grandUpgradesTotal > 0 ? `+${fmt(grandUpgradesTotal)} in upgrades` : "No upgrades selected"}
+              {upgradesSummary}
             </div>
           </div>
           <button
@@ -270,10 +279,10 @@ export default function SelectionsPortal({
                     style={{
                       fontFamily: mono,
                       fontSize: 10.5,
-                      color: upgrade > 0 ? BRASS : PINE,
+                      color: chosen.priceTBD || upgrade > 0 ? BRASS : PINE,
                     }}
                   >
-                    {upgrade > 0 ? `+${fmt(upgrade)}` : "Incl."}
+                    {chosen.priceTBD ? "TBD" : upgrade > 0 ? `+${fmt(upgrade)}` : "Incl."}
                   </span>
                 )}
               </button>
@@ -404,7 +413,11 @@ export default function SelectionsPortal({
                         color: opt.included ? PINE : BRASS,
                       }}
                     >
-                      {opt.included ? "Complimentary" : `+${fmt(opt.upgradeCost ?? 0)} upgrade`}
+                      {opt.included
+                        ? "Complimentary"
+                        : opt.priceTBD
+                        ? "Price TBD"
+                        : `+${fmt(opt.upgradeCost ?? 0)} upgrade`}
                     </div>
                   </button>
                 );
@@ -529,6 +542,13 @@ export default function SelectionsPortal({
                         <CircleCheckBig size={15} color={PINE} />
                         <span style={{ fontFamily: mono, fontSize: 12, color: PINE }}>
                           Complimentary selection — no added cost
+                        </span>
+                      </>
+                    ) : chosen.priceTBD ? (
+                      <>
+                        <ArrowUpRight size={15} color={BRASS} />
+                        <span style={{ fontFamily: mono, fontSize: 12, color: BRASS }}>
+                          Upgrade selected — price to be determined
                         </span>
                       </>
                     ) : (
@@ -677,10 +697,16 @@ export default function SelectionsPortal({
                       style={{
                         fontFamily: mono,
                         fontSize: 12.5,
-                        color: !chosen ? MUTED : upgrade > 0 ? BRASS : PINE,
+                        color: !chosen ? MUTED : chosen.priceTBD || upgrade > 0 ? BRASS : PINE,
                       }}
                     >
-                      {!chosen ? "—" : upgrade > 0 ? `+${fmt(upgrade)}` : "Included"}
+                      {!chosen
+                        ? "—"
+                        : chosen.priceTBD
+                        ? "Price TBD"
+                        : upgrade > 0
+                        ? `+${fmt(upgrade)}`
+                        : "Included"}
                     </div>
                   </div>
                 );
@@ -747,10 +773,16 @@ export default function SelectionsPortal({
                     fontFamily: mono,
                     fontSize: 14,
                     fontWeight: 700,
-                    color: grandUpgradesTotal > 0 ? BRASS : MUTED,
+                    color: grandUpgradesTotal > 0 || hasTBDSelected ? BRASS : MUTED,
                   }}
                 >
-                  {grandUpgradesTotal > 0 ? `+${fmt(grandUpgradesTotal)}` : "None selected"}
+                  {grandUpgradesTotal > 0 && hasTBDSelected
+                    ? `+${fmt(grandUpgradesTotal)} + price TBD items`
+                    : grandUpgradesTotal > 0
+                    ? `+${fmt(grandUpgradesTotal)}`
+                    : hasTBDSelected
+                    ? "Price TBD items selected"
+                    : "None selected"}
                 </div>
               </div>
             </div>
