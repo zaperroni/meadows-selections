@@ -23,12 +23,13 @@ export async function notifyBuilderOfQuestion(opts: {
   const portalUrl = `${baseUrl}/portal/${opts.token}`;
 
   try {
-    await client.emails.send({
+    const { error } = await client.emails.send({
       from: "Meadows Selections Portal <onboarding@resend.dev>",
       to,
       subject: `New question from ${opts.familyName} — Lot ${opts.lot}`,
       text: `${opts.familyName} family (Lot ${opts.lot}) asked about ${opts.categoryLabel}:\n\n"${opts.question}"\n\nView their portal: ${portalUrl}`,
     });
+    if (error) console.error("Resend rejected buyer-question notification email:", error);
   } catch (err) {
     console.error("Failed to send buyer-question notification email:", err);
   }
