@@ -15,9 +15,9 @@ Full list of valid <category>__<option> names below.
 
 ROOF COLOR (roof)
   roof__charcoal                  [done]
-  roof__pewter-grey
+  roof__pewter-grey               [done]
   roof__weathered-wood            [done]
-  roof__other-timberline
+  roof__other-timberline          [done]
 
 SIDING - FRONT FASCIA (siding-front)
   siding-front__arctic-white
@@ -46,6 +46,7 @@ SIDING - SIDES & REAR (siding-sides-rear)
   siding-sides-rear__antique-parchment
   siding-sides-rear__tuscan-clay
   siding-sides-rear__other-alside
+  siding-sides-rear__hardieplank-all-sides
 
 SHUTTERS (shutters)
   shutters__no-shutters
