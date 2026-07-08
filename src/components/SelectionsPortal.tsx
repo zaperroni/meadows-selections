@@ -208,7 +208,7 @@ export default function SelectionsPortal({
             <div style={{ fontFamily: display, fontSize: 18, lineHeight: 1.1, color: "#F3EFE4" }}>
               {buyer.community} · Lot {buyer.lot}
             </div>
-            <div style={{ fontSize: 12, color: "#B9C2B6" }}>
+            <div style={{ fontSize: 12, color: "#C7C2B4" }}>
               Selections for the {buyer.family_name} family
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function SelectionsPortal({
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:block text-right">
-            <div style={{ fontFamily: mono, fontSize: 11, color: "#B9C2B6" }}>
+            <div style={{ fontFamily: mono, fontSize: 11, color: "#C7C2B4" }}>
               {madeCount} of {CATEGORIES.length} selected
             </div>
             <div style={{ fontFamily: mono, fontSize: 13, color: "#F3EFE4" }}>
@@ -227,8 +227,8 @@ export default function SelectionsPortal({
             onClick={() => setReviewOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm"
             style={{
-              background: signedAt ? "#5C6E5F" : BRASS,
-              color: PINE_DARK,
+              background: signedAt ? "#4A4742" : BRASS,
+              color: signedAt ? "#F3EFE4" : PINE_DARK,
               fontWeight: 600,
               borderRadius: 2,
             }}
@@ -412,7 +412,7 @@ export default function SelectionsPortal({
                         fontFamily: mono,
                         fontSize: 11.5,
                         borderRadius: 20,
-                        background: opt.included ? "#E4EAE1" : "#F3E9D8",
+                        background: opt.included ? "#E7E4DA" : "#F3E9D8",
                         color: opt.included ? PINE : BRASS,
                       }}
                     >
@@ -462,7 +462,7 @@ export default function SelectionsPortal({
                             style={{
                               fontFamily: mono,
                               fontSize: 11,
-                              color: isChosen ? "#D8DED4" : MUTED,
+                              color: isChosen ? "#D6D2C6" : MUTED,
                             }}
                           >
                             {opt.included ? "(standard)" : `(+${fmt(opt.upgradeCost ?? 0)})`}

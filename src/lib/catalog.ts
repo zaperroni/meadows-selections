@@ -22,8 +22,8 @@ export const INK = "#262420";
 export const PAPER = "#E9E3D4";
 export const CARD = "#FAF8F1";
 export const LINE = "#CDC3AA";
-export const PINE = "#37503F";
-export const PINE_DARK = "#243830";
+export const PINE = "#1F1D1A";
+export const PINE_DARK = "#121110";
 export const BRASS = "#A2793F";
 export const MUTED = "#7A7362";
 

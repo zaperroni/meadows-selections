@@ -11,7 +11,14 @@
       "Bash(grep -n '@name PanelTop$\\\\|@name PenTool$\\\\|@name MessageCircle$\\\\|@name MoveVertical$\\\\|@name CheckCircle2$\\\\|@name Cpu$\\\\|@name Hammer$\\\\|@name Sun$\\\\|@name Columns$\\\\|@name Triangle$\\\\|@name Blinds$\\\\|@name Warehouse$\\\\|@name Droplet$\\\\|@name Layers$\\\\|@name Square$\\\\|@name Home$\\\\|@name Check$\\\\|@name Send$\\\\|@name X$\\\\|@name PaintBucket$' C:/Users/BrandonZappiPE/Desktop/meadows-selections/node_modules/lucide-react/dist/lucide-react.d.ts)",
       "Bash(ls \"/c/Program Files/nodejs/\" 2>/dev/null | grep -i npm)",
       "Bash(git add *)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git ls-remote *)",
+      "WebFetch(domain:meadows-selections.vercel.app)"
     ]
   }
 }
