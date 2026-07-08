@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import AddBuyerForm from "@/components/AddBuyerForm";
+import BuyerRow from "@/components/BuyerRow";
 
 export const dynamic = "force-dynamic";
 
@@ -33,25 +33,14 @@ export default async function Home() {
             </div>
           )}
           {buyers?.map((b) => (
-            <Link
+            <BuyerRow
               key={b.token}
-              href={`/portal/${b.token}`}
-              className="flex items-center justify-between rounded border border-zinc-200 bg-white px-4 py-3 hover:border-zinc-400"
-            >
-              <div>
-                <div className="font-medium text-zinc-900">
-                  {b.family_name} family — Lot {b.lot}
-                </div>
-                <div className="text-xs text-zinc-500">{b.community}</div>
-              </div>
-              <div className="text-xs">
-                {b.signed_at ? (
-                  <span className="text-emerald-700">Signed</span>
-                ) : (
-                  <span className="text-zinc-400">In progress</span>
-                )}
-              </div>
-            </Link>
+              token={b.token}
+              familyName={b.family_name}
+              lot={b.lot}
+              community={b.community}
+              signed={!!b.signed_at}
+            />
           ))}
         </div>
       </div>

@@ -93,6 +93,11 @@ export async function createBuyer(
   return data;
 }
 
+export async function deleteBuyer(token: string) {
+  const { error } = await supabaseAdmin.from("buyers").delete().eq("token", token);
+  if (error) throw new Error(error.message);
+}
+
 export async function signSelections(token: string, signerName: string) {
   const buyer = await getBuyerByToken(token);
   if (buyer.signed_at) throw new Error("Already signed.");
