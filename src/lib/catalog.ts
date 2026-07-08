@@ -191,6 +191,14 @@ export const CATEGORIES: Category[] = [
         upgradeCost: 350,
         swatch: "repeating-linear-gradient(90deg, #8C8272 0px, #8C8272 14px, #766C5D 14px, #766C5D 18px)",
       },
+      {
+        id: "hardieplank-all-sides",
+        name: "Hardieplank on All Sides",
+        desc: "Upgrade sides and rear from Alside vinyl to James Hardie fiber cement siding, matching the front.",
+        included: false,
+        upgradeCost: 55000,
+        swatch: "repeating-linear-gradient(90deg, #DAD5C6 0px, #DAD5C6 20px, #C7C2B0 20px, #C7C2B0 22px)",
+      },
     ],
   },
   {
