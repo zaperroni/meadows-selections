@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import AddBuyerForm from "@/components/AddBuyerForm";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +15,18 @@ export default async function Home() {
       <div className="w-full max-w-2xl">
         <h1 className="text-2xl font-semibold text-zinc-900">Builder Dashboard</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Each buyer gets their own private selections link. This page is a local
-          convenience for testing — send buyers only their individual link.
+          Each buyer gets their own private selections link. Send buyers only
+          their individual link — this dashboard itself isn&apos;t private.
         </p>
+
+        <div className="mt-6">
+          <AddBuyerForm />
+        </div>
 
         <div className="mt-8 flex flex-col gap-3">
           {(!buyers || buyers.length === 0) && (
             <div className="rounded border border-dashed border-zinc-300 p-6 text-sm text-zinc-500">
-              No buyers yet. Create one with:{" "}
+              No buyers yet. Add one above, or from the command line with:{" "}
               <code className="rounded bg-zinc-100 px-1.5 py-0.5">
                 npm run seed:buyer -- &quot;Family Name&quot; &quot;Lot #&quot;
               </code>

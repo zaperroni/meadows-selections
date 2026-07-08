@@ -18,7 +18,9 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(git ls-remote *)",
-      "WebFetch(domain:meadows-selections.vercel.app)"
+      "WebFetch(domain:meadows-selections.vercel.app)",
+      "Bash(curl -s \"https://meadows-selections.vercel.app/portal/henderson-lot14-DhrUe4c\" -o /tmp/live.html -w \"HTTP %{http_code}\\\\n\")",
+      "Read(//tmp/**)"
     ]
   }
 }

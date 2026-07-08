@@ -1,6 +1,8 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import type { Buyer } from "@/lib/types";
 
 async function getBuyerByToken(token: string) {
   const { data, error } = await supabaseAdmin
@@ -61,6 +63,34 @@ export async function addNote(
     text,
   });
   if (error) throw new Error(error.message);
+}
+
+export async function createBuyer(
+  familyName: string,
+  lot: string,
+  community: string
+): Promise<Buyer> {
+  const trimmedName = familyName.trim();
+  const trimmedLot = lot.trim();
+  if (!trimmedName || !trimmedLot) throw new Error("Family name and lot are required.");
+
+  const slug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const suffix = randomBytes(5).toString("base64url");
+  const token = `${slug || "buyer"}-lot${trimmedLot}-${suffix}`;
+
+  const { data, error } = await supabaseAdmin
+    .from("buyers")
+    .insert({
+      token,
+      community: community.trim() || "Meadows at Briarcliff",
+      lot: trimmedLot,
+      family_name: trimmedName,
+    })
+    .select("id, token, community, lot, family_name, signer_name, signed_at")
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Failed to create buyer.");
+
+  return data;
 }
 
 export async function signSelections(token: string, signerName: string) {
