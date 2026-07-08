@@ -20,7 +20,12 @@
       "Bash(git ls-remote *)",
       "WebFetch(domain:meadows-selections.vercel.app)",
       "Bash(curl -s \"https://meadows-selections.vercel.app/portal/henderson-lot14-DhrUe4c\" -o /tmp/live.html -w \"HTTP %{http_code}\\\\n\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:wrongpass\" \"http://localhost:3000/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:cedar-ridge-3825\" \"http://localhost:3000/\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:3000/portal/henderson-lot14-DhrUe4c\")",
+      "Bash(curl -s -u \"admin:cedar-ridge-3825\" \"http://localhost:3000/\")"
     ]
   }
 }
