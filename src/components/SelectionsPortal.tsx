@@ -750,6 +750,14 @@ export default function SelectionsPortal({
               </div>
             )}
           </div>
+
+          <p
+            className="mt-10"
+            style={{ fontSize: 11.5, color: MUTED, fontStyle: "italic", maxWidth: 520 }}
+          >
+            Pricing and selection availability are subject to change at any time
+            without notice.
+          </p>
         </div>
       </div>
 
@@ -895,6 +903,10 @@ export default function SelectionsPortal({
             </div>
 
             <div className="px-5 py-4" style={{ borderTop: `1px solid ${LINE}` }}>
+              <p style={{ fontSize: 11.5, color: MUTED, fontStyle: "italic", marginBottom: 12 }}>
+                Pricing and selection availability are subject to change at any
+                time without notice.
+              </p>
               {signedAt ? (
                 <div className="flex items-center gap-2" style={{ color: PINE }}>
                   <CircleCheckBig size={18} />
