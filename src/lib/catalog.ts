@@ -69,13 +69,25 @@ export interface FloorGroup {
   options: FloorOption[];
 }
 
-export interface UpgradeItem {
+export interface UpgradeToggleItem {
+  kind?: "toggle";
   id: string;
   name: string;
   desc: string;
   price: number;
   unit?: string;
 }
+
+export interface UpgradeQuantityItem {
+  kind: "quantity";
+  id: string;
+  name: string;
+  desc: string;
+  pricePerUnit: number;
+  unit: string;
+}
+
+export type UpgradeItem = UpgradeToggleItem | UpgradeQuantityItem;
 
 export interface FloorsUpgradeGroup {
   id: string;
@@ -487,25 +499,45 @@ export const UPGRADE_GROUPS: UpgradeGroup[] = [
   },
   {
     id: "ceiling-features",
-    name: "Ceiling Features",
+    name: "Trim Upgrades",
     room: "Home Upgrades — Structural",
     icon: PanelTop,
     type: "multi",
-    note: "Priced per room. Select any that apply.",
+    note: "Ceiling details are priced per room — enter a quantity. Trim packages are flat-rate — check to include.",
     items: [
       {
+        kind: "quantity",
         id: "coffered",
         name: "Coffered Ceiling",
         desc: "Recessed grid-panel ceiling detail.",
-        price: 6500,
-        unit: "per room",
+        pricePerUnit: 6500,
+        unit: "room",
       },
       {
+        kind: "quantity",
         id: "tray",
         name: "Tray Ceiling with Light Rail",
         desc: "Stepped ceiling detail with integrated light rail.",
-        price: 9900,
-        unit: "per room",
+        pricePerUnit: 9900,
+        unit: "room",
+      },
+      {
+        id: "trim-panel-foyer-stairwell",
+        name: "Trim Panel Package — Foyer Stairwell",
+        desc: "Decorative wall panel trim in the foyer stairwell.",
+        price: 6400,
+      },
+      {
+        id: "trim-panel-dining-room",
+        name: "Trim Panel Package — Dining Room",
+        desc: "Decorative wall panel trim in the dining room.",
+        price: 4500,
+      },
+      {
+        id: "crown-moulding-upstairs",
+        name: "Crown Moulding — Upstairs",
+        desc: "Crown moulding trim added to all upstairs rooms.",
+        price: 4600,
       },
     ],
   },
@@ -584,6 +616,12 @@ export const UPGRADE_GROUPS: UpgradeGroup[] = [
         name: "Prep for Future Finished Basement",
         desc: "1 egress window in basement, rough plumbing for a 2-fixture bathroom.",
         price: 7500,
+      },
+      {
+        id: "energy-efficiency-package",
+        name: "Energy Efficiency Package",
+        desc: "Replaces all fiberglass batt insulation with open cell spray foam.",
+        price: 12000,
       },
     ],
   },

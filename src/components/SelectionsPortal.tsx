@@ -37,6 +37,31 @@ import { chooseSelection, setUpgradeSelection, addNote, signSelections } from "@
 import type { Buyer, SelectionsMap, UpgradeSelectionsMap, NotesMap, NoteEntry } from "@/lib/types";
 import OptionSwatch from "@/components/OptionSwatch";
 
+// Quantity items are encoded as "itemId:count" alongside plain "itemId" toggle
+// entries in the same string[] the DB stores per group — no schema change needed.
+function decodeUpgradeEntries(entries: string[]) {
+  const toggles = new Set<string>();
+  const quantities: Record<string, number> = {};
+  for (const entry of entries) {
+    const idx = entry.lastIndexOf(":");
+    if (idx > -1) {
+      const count = Number(entry.slice(idx + 1));
+      if (Number.isFinite(count) && count > 0) quantities[entry.slice(0, idx)] = count;
+    } else {
+      toggles.add(entry);
+    }
+  }
+  return { toggles, quantities };
+}
+
+function encodeUpgradeEntries(toggles: Set<string>, quantities: Record<string, number>): string[] {
+  const entries = Array.from(toggles);
+  for (const [id, count] of Object.entries(quantities)) {
+    if (count > 0) entries.push(`${id}:${count}`);
+  }
+  return entries;
+}
+
 function formatSignedAt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
@@ -110,9 +135,11 @@ export default function SelectionsPortal({
       return group.floors.reduce((sum, floor) => sum + floorLineFor(group, floor).upgrade, 0);
     }
     const sel = upgradeSelections[group.id] || [];
-    return group.items
-      .filter((i) => sel.includes(i.id))
-      .reduce((sum, i) => sum + i.price, 0);
+    const { toggles, quantities } = decodeUpgradeEntries(sel);
+    return group.items.reduce((sum, item) => {
+      if (item.kind === "quantity") return sum + item.pricePerUnit * (quantities[item.id] || 0);
+      return sum + (toggles.has(item.id) ? item.price : 0);
+    }, 0);
   };
 
   const allUpgradesTotal = UPGRADE_GROUPS.reduce((sum, g) => sum + upgradeGroupTotal(g), 0);
@@ -154,6 +181,23 @@ export default function SelectionsPortal({
         : prev.includes(itemId)
         ? prev.filter((id) => id !== itemId)
         : [...prev, itemId];
+
+    setUpgradeSelections((s) => ({ ...s, [groupId]: next }));
+    setUpgradeSelection(buyer.token, groupId, next).catch((err) => {
+      console.error(err);
+      window.alert("Couldn't save that upgrade — please try again.");
+      setUpgradeSelections((s) => ({ ...s, [groupId]: prev }));
+    });
+  };
+
+  const setQuantity = (groupId: string, itemId: string, quantity: number) => {
+    if (signedAt) return;
+    const prev = upgradeSelections[groupId] || [];
+    const { toggles, quantities } = decodeUpgradeEntries(prev);
+    const nextQuantities = { ...quantities };
+    if (quantity > 0) nextQuantities[itemId] = quantity;
+    else delete nextQuantities[itemId];
+    const next = encodeUpgradeEntries(toggles, nextQuantities);
 
     setUpgradeSelections((s) => ({ ...s, [groupId]: next }));
     setUpgradeSelection(buyer.token, groupId, next).catch((err) => {
@@ -477,11 +521,65 @@ export default function SelectionsPortal({
             </div>
           )}
 
-          {/* Toggle list (home upgrade packages) */}
+          {/* Toggle / quantity list (home upgrade packages) */}
           {active.items && (
             <div className="flex flex-col gap-3 mb-6">
               {active.items.map((item) => {
                 const sel = upgradeSelections[active.id] || [];
+
+                if (item.kind === "quantity") {
+                  const { quantities } = decodeUpgradeEntries(sel);
+                  const qty = quantities[item.id] || 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-3 p-3"
+                      style={{
+                        background: CARD,
+                        border: `1.5px solid ${qty > 0 ? PINE : LINE}`,
+                        borderRadius: 4,
+                        opacity: signedAt && qty === 0 ? 0.55 : 1,
+                      }}
+                    >
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</span>
+                          <span style={{ fontFamily: mono, fontSize: 13, color: BRASS }}>
+                            {fmt(item.pricePerUnit)} / {item.unit}
+                            {qty > 0 ? ` — ${fmt(item.pricePerUnit * qty)} total` : ""}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
+                          {item.desc}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(active.id, item.id, Math.max(0, qty - 1))}
+                          disabled={!!signedAt || qty === 0}
+                          className="flex h-7 w-7 items-center justify-center"
+                          style={{ border: `1.5px solid ${LINE}`, borderRadius: 3, fontSize: 16, lineHeight: 1 }}
+                        >
+                          −
+                        </button>
+                        <span style={{ fontFamily: mono, fontSize: 14, minWidth: 16, textAlign: "center" }}>
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(active.id, item.id, qty + 1)}
+                          disabled={!!signedAt}
+                          className="flex h-7 w-7 items-center justify-center"
+                          style={{ border: `1.5px solid ${LINE}`, borderRadius: 3, fontSize: 16, lineHeight: 1 }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const isChosen = sel.includes(item.id);
                 return (
                   <button
@@ -747,23 +845,32 @@ export default function SelectionsPortal({
                     ));
                 }
                 const sel = upgradeSelections[group.id] || [];
+                const { toggles, quantities } = decodeUpgradeEntries(sel);
                 return group.items
-                  .filter((item) => sel.includes(item.id))
-                  .map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between py-2"
-                      style={{ borderBottom: `1px solid ${LINE}` }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
-                        <div style={{ fontSize: 12, color: MUTED }}>{group.name}</div>
+                  .filter((item) =>
+                    item.kind === "quantity" ? (quantities[item.id] || 0) > 0 : toggles.has(item.id)
+                  )
+                  .map((item) => {
+                    const qty = item.kind === "quantity" ? quantities[item.id] || 0 : 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between py-2"
+                        style={{ borderBottom: `1px solid ${LINE}` }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>
+                            {item.name}
+                            {item.kind === "quantity" ? ` × ${qty} ${item.unit}${qty === 1 ? "" : "s"}` : ""}
+                          </div>
+                          <div style={{ fontSize: 12, color: MUTED }}>{group.name}</div>
+                        </div>
+                        <div style={{ fontFamily: mono, fontSize: 12.5, color: BRASS }}>
+                          +{fmt(item.kind === "quantity" ? item.pricePerUnit * qty : item.price)}
+                        </div>
                       </div>
-                      <div style={{ fontFamily: mono, fontSize: 12.5, color: BRASS }}>
-                        +{fmt(item.price)}
-                      </div>
-                    </div>
-                  ));
+                    );
+                  });
               })}
 
               <div className="flex items-center justify-between pt-3">
