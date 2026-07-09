@@ -1,57 +1,66 @@
 // One-time generator for data/pricing.xlsx — the builder-editable sheet of
-// per-sqft rates. After generation, the xlsx itself is the source of truth;
-// new catalog options should be added there as new rows (matching the
-// <categoryOrGroupId>__<optionOrItemId> key convention).
+// ALL upgrade prices. After generation, the xlsx itself is the source of truth:
+// edit "Flat Price" to change a price, or fill "Price per Sq Ft" to make a
+// price scale with house size. New catalog options should be added here as new
+// rows (key = <categoryOrGroupId>__<optionOrItemId>).
 // Usage: node scripts/generate-pricing-sheet.mjs
 import ExcelJS from "exceljs";
 import { mkdirSync } from "node:fs";
 
+// [key, section, option, flatPrice, perSqftEligible]
+// perSqftEligible=false → the per-sqft cell shows "n/a" (structural / per-room
+// prices that don't scale with house size).
 const ROWS = [
-  ["roof__other-timberline", "Roof Color", "Other GAF Timberline Colors", 400],
-  ["siding-sides-rear__other-alside", "Siding (Sides & Rear)", "Other Alside Vinyl Colors", 350],
-  ["siding-sides-rear__hardieplank-all-sides", "Siding (Sides & Rear)", "Hardieplank on All Sides", 55000],
-  ["windows__black-white", "Windows", "Black Exterior / White Interior", 850],
-  ["front-door__builder-black", "Front Door Color", "Black", 100],
-  ["front-door__iron-ore", "Front Door Color", "Iron Ore", 100],
-  ["front-door__barn-red", "Front Door Color", "Designer Red", 100],
-  ["front-door__natural-stain", "Front Door Color", "Natural Stain Finish", 250],
-  ["garage-door__black-doors", "Garage Door Style", "Black Doors", 300],
-  ["garage-door__coachman-doors", "Garage Door Style", "Coachman Doors", 1200],
-  ["cabinets__shaker-greige", "Kitchen Cabinets", "Shaker — Greige", 400],
-  ["cabinets__slab-walnut", "Kitchen Cabinets", "Slab — Natural Walnut", 1700],
-  ["countertops__other-tbd", "Countertops", "Other — Price TBD", "TBD"],
-  ["flooring__flooring-stain", "Flooring", "Flooring Stain", 500],
-  ["plumbing__polished-nickel", "Plumbing Fixtures", "Polished Nickel Package", 200],
-  ["plumbing__brushed-brass", "Plumbing Fixtures", "Brushed Brass Package", 450],
-  ["paint__designer-palette", "Paint & Trim", "Designer Palette — Custom", 400],
-  ["ceiling-features__trim-panel-foyer-stairwell", "Trim Upgrades", "Trim Panel Package — Foyer Stairwell", 6400],
-  ["ceiling-features__trim-panel-dining-room", "Trim Upgrades", "Trim Panel Package — Dining Room", 4500],
-  ["ceiling-features__crown-moulding-upstairs", "Trim Upgrades", "Crown Moulding — Upstairs", 4600],
-  ["covered-deck__deck-1", "Covered Deck", "Covered Deck — Option 1", 90000],
-  ["covered-deck__deck-2", "Covered Deck", "Covered Deck — Option 2", 110000],
-  ["technology__sonos", "Technology & Smart Home", "Sonos Sound Package", 15000],
-  ["technology__tech-package", "Technology & Smart Home", "Technology Package", 5000],
-  ["technology__security", "Technology & Smart Home", "Home Security Package", 25000],
-  ["technology__ev-charger", "Technology & Smart Home", "EV Charging Station", 7500],
-  ["technology__generator", "Technology & Smart Home", "22kW Generac Generator", 16500],
-  ["future-planning__basement-prep", "Future Planning", "Prep for Future Finished Basement", 7500],
-  ["future-planning__energy-efficiency-package", "Future Planning", "Energy Efficiency Package", 12000],
+  ["roof__other-timberline", "Roof Color", "Other GAF Timberline Colors", 400, true],
+  ["siding-sides-rear__other-alside", "Siding (Sides & Rear)", "Other Alside Vinyl Colors", 350, true],
+  ["siding-sides-rear__hardieplank-all-sides", "Siding (Sides & Rear)", "Hardieplank on All Sides", 55000, true],
+  ["windows__black-white", "Windows", "Black Exterior / White Interior", 850, true],
+  ["front-door__builder-black", "Front Door Color", "Black", 100, true],
+  ["front-door__iron-ore", "Front Door Color", "Iron Ore", 100, true],
+  ["front-door__barn-red", "Front Door Color", "Designer Red", 100, true],
+  ["front-door__natural-stain", "Front Door Color", "Natural Stain Finish", 250, true],
+  ["garage-door__black-doors", "Garage Door Style", "Black Doors", 300, true],
+  ["garage-door__coachman-doors", "Garage Door Style", "Coachman Doors", 1200, true],
+  ["cabinets__shaker-greige", "Kitchen Cabinets", "Shaker — Greige", 400, true],
+  ["cabinets__slab-walnut", "Kitchen Cabinets", "Slab — Natural Walnut", 1700, true],
+  ["countertops__other-tbd", "Countertops", "Other — Price TBD", "TBD", false],
+  ["flooring__flooring-stain", "Flooring", "Flooring Stain", 500, true],
+  ["plumbing__polished-nickel", "Plumbing Fixtures", "Polished Nickel Package", 200, true],
+  ["plumbing__brushed-brass", "Plumbing Fixtures", "Brushed Brass Package", 450, true],
+  ["paint__designer-palette", "Paint & Trim", "Designer Palette — Custom", 400, true],
+  ["ceiling-height__9ft", "Ceiling Height (per floor)", "9' Ceiling", 19850, false],
+  ["ceiling-height__10ft", "Ceiling Height (per floor)", "10' Ceiling", 38500, false],
+  ["ceiling-features__coffered", "Trim Upgrades", "Coffered Ceiling (per room)", 6500, false],
+  ["ceiling-features__tray", "Trim Upgrades", "Tray Ceiling with Light Rail (per room)", 9900, false],
+  ["ceiling-features__trim-panel-foyer-stairwell", "Trim Upgrades", "Trim Panel Package — Foyer Stairwell", 6400, true],
+  ["ceiling-features__trim-panel-dining-room", "Trim Upgrades", "Trim Panel Package — Dining Room", 4500, true],
+  ["ceiling-features__crown-moulding-upstairs", "Trim Upgrades", "Crown Moulding — Upstairs", 4600, true],
+  ["covered-deck__deck-1", "Covered Deck", "Covered Deck — Option 1", 90000, true],
+  ["covered-deck__deck-2", "Covered Deck", "Covered Deck — Option 2", 110000, true],
+  ["technology__sonos", "Technology & Smart Home", "Sonos Sound Package", 15000, true],
+  ["technology__tech-package", "Technology & Smart Home", "Technology Package", 5000, true],
+  ["technology__security", "Technology & Smart Home", "Home Security Package", 25000, true],
+  ["technology__ev-charger", "Technology & Smart Home", "EV Charging Station", 7500, true],
+  ["technology__generator", "Technology & Smart Home", "22kW Generac Generator", 16500, true],
+  ["future-planning__basement-prep", "Future Planning", "Prep for Future Finished Basement", 7500, true],
+  ["future-planning__energy-efficiency-package", "Future Planning", "Energy Efficiency Package", 12000, true],
 ];
 
 const ARIAL = { name: "Arial", size: 10 };
+const INPUT_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7DC" } };
 const wb = new ExcelJS.Workbook();
 
-const sheet = wb.addWorksheet("Per SqFt Rates", { views: [{ state: "frozen", ySplit: 1 }] });
+const sheet = wb.addWorksheet("Prices", { views: [{ state: "frozen", ySplit: 1 }] });
 sheet.columns = [
-  { header: "Option Key (do not edit)", key: "key", width: 44 },
+  { header: "Option Key (do not edit)", key: "key", width: 46 },
   { header: "Section", key: "section", width: 26 },
-  { header: "Option", key: "option", width: 38 },
-  { header: "Current Flat Price ($)", key: "flat", width: 20 },
-  { header: "Price per Sq Ft ($) — fill in to override", key: "rate", width: 34 },
+  { header: "Option", key: "option", width: 40 },
+  { header: "Flat Price ($) — edit to change", key: "flat", width: 26 },
+  { header: "Price per Sq Ft ($) — fill in to scale with house size", key: "rate", width: 40 },
 ];
 
-for (const [key, section, option, flat] of ROWS) {
-  sheet.addRow({ key, section, option, flat, rate: null });
+for (const [key, section, option, flat, perSqftEligible] of ROWS) {
+  sheet.addRow({ key, section, option, flat, rate: perSqftEligible ? null : "n/a" });
 }
 
 sheet.eachRow((row, n) => {
@@ -65,14 +74,23 @@ sheet.eachRow((row, n) => {
       cell.alignment = { vertical: "middle", wrapText: true };
     });
     row.height = 30;
+    return;
+  }
+
+  const flatCell = row.getCell(4);
+  if (typeof flatCell.value === "number") flatCell.numFmt = "$#,##0";
+  // Blue = editable input, per standard spreadsheet conventions.
+  flatCell.font = { ...ARIAL, color: { argb: "FF0000FF" } };
+  flatCell.fill = INPUT_FILL;
+
+  const rateCell = row.getCell(5);
+  if (rateCell.value === "n/a") {
+    rateCell.font = { ...ARIAL, color: { argb: "FF999999" }, italic: true };
+    rateCell.alignment = { horizontal: "center" };
   } else {
-    const flatCell = row.getCell(4);
-    if (typeof flatCell.value === "number") flatCell.numFmt = "$#,##0";
-    const rateCell = row.getCell(5);
     rateCell.numFmt = "$#,##0.00";
-    // Blue = editable input, per standard spreadsheet conventions.
     rateCell.font = { ...ARIAL, color: { argb: "FF0000FF" } };
-    rateCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7DC" } };
+    rateCell.fill = INPUT_FILL;
   }
 });
 
@@ -81,23 +99,27 @@ help.columns = [{ width: 100 }];
 const LINES = [
   "HOW THIS SHEET WORKS",
   "",
-  "Fill in the 'Price per Sq Ft' column (the highlighted one) for any option whose price",
-  "should scale with house size. Leave it blank for options that keep their flat price.",
+  "This is the single place to set every upgrade price. Two editable columns:",
   "",
-  "When a rate is filled in, the website computes that option's price for each buyer as:",
-  "    price = rate x the buyer's house size (sq ft)",
-  "You enter each buyer's house size on the Builder Dashboard (the password-protected page).",
-  "If a buyer has no house size entered yet, per-sqft options show 'Price TBD' in their portal.",
+  "  • Flat Price — the option's price. Edit it to change what buyers are charged.",
+  "  • Price per Sq Ft — leave blank for a flat price, OR fill it in to make the",
+  "    price scale with house size. When filled, it OVERRIDES the flat price and",
+  "    the website computes:  price = rate x the buyer's house size (sq ft).",
   "",
-  "The 'Current Flat Price' column is for reference only — changing it here does NOT change",
-  "the website. Flat prices live in the app itself; ask to have those changed.",
+  "You enter each buyer's house size on the Builder Dashboard (the password page).",
+  "If a per-sqft option has no house size entered for a buyer, it shows 'Price TBD'",
+  "in their portal until you add one.",
+  "",
+  "Cells marked 'n/a' in the Price per Sq Ft column are structural or per-room",
+  "prices (ceiling heights, coffered/tray ceilings) that don't scale with house",
+  "size — set their Flat Price only.",
+  "",
+  "'TBD' in a Flat Price cell means the buyer sees 'Price TBD' (e.g. the custom",
+  "countertop option). Replace it with a number once a price is known.",
   "",
   "Do not edit the 'Option Key' column — it's how rows are matched to website options.",
   "",
-  "Not listed here: ceiling heights (fixed per-floor prices) and the coffered/tray ceilings",
-  "(priced per room with a quantity picker, not by house size).",
-  "",
-  "After saving changes, the file needs to be published (committed and pushed) before the",
+  "After saving changes, the file must be published (committed and pushed) before the",
   "live site picks it up — just ask to 'publish the new pricing'.",
 ];
 LINES.forEach((text, i) => {

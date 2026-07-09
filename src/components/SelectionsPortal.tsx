@@ -32,10 +32,18 @@ import {
   type FloorsUpgradeGroup,
   type UpgradeGroup,
   type UpgradeToggleItem,
+  type UpgradeQuantityItem,
   type ActiveEntity,
 } from "@/lib/catalog";
 import { chooseSelection, setUpgradeSelection, addNote, signSelections } from "@/lib/actions";
-import type { Buyer, SelectionsMap, UpgradeSelectionsMap, NotesMap, NoteEntry } from "@/lib/types";
+import type {
+  Buyer,
+  SelectionsMap,
+  UpgradeSelectionsMap,
+  NotesMap,
+  NoteEntry,
+  PricingMap,
+} from "@/lib/types";
 import OptionSwatch from "@/components/OptionSwatch";
 
 // Quantity items are encoded as "itemId:count" alongside plain "itemId" toggle
@@ -78,8 +86,8 @@ interface Props {
   initialSelections: SelectionsMap;
   initialUpgradeSelections: UpgradeSelectionsMap;
   initialNotes: NotesMap;
-  // From data/pricing.xlsx: "<categoryOrGroupId>__<optionOrItemId>" → $/sqft.
-  sqftRates: Record<string, number>;
+  // From data/pricing.xlsx: "<categoryOrGroupId>__<optionOrItemId>" → prices.
+  pricing: PricingMap;
 }
 
 export default function SelectionsPortal({
@@ -87,7 +95,7 @@ export default function SelectionsPortal({
   initialSelections,
   initialUpgradeSelections,
   initialNotes,
-  sqftRates,
+  pricing,
 }: Props) {
   const [activeId, setActiveId] = useState(CATEGORIES[0].id);
   const [selections, setSelections] = useState<SelectionsMap>(initialSelections);
@@ -110,24 +118,32 @@ export default function SelectionsPortal({
 
   const sqft = buyer.sqft;
 
-  // Cost of picking an option; null means it can't be priced yet (flat TBD,
-  // or per-sqft with no house size entered for this buyer). A rate in the
-  // pricing sheet overrides the option's flat price.
-  const optionCost = (catId: string, opt: CategoryOption): number | null => {
-    if (opt.included) return 0;
-    const rate = sqftRates[`${catId}__${opt.id}`];
-    if (rate != null) return sqft ? Math.round(rate * sqft) : null;
-    if (opt.priceTBD) return null;
-    return opt.upgradeCost ?? 0;
+  // Resolve a price from the sheet, falling back to the app's built-in price.
+  // Per-sqft rate wins (→ null if no house size yet); then an explicit "TBD";
+  // then a flat-price override; then the built-in fallback.
+  // Returns null when the price can't be shown yet ("Price TBD").
+  const priceFor = (key: string, fallbackFlat: number, builtinTBD: boolean): number | null => {
+    const p = pricing[key];
+    if (p?.perSqft != null) return sqft ? Math.round(p.perSqft * sqft) : null;
+    if (p?.tbd) return null;
+    if (p?.flat != null) return p.flat;
+    if (builtinTBD) return null;
+    return fallbackFlat;
   };
+  // Flat-only lookup for structural/per-room prices (no per-sqft, never TBD).
+  const flatFor = (key: string, fallback: number): number =>
+    pricing[key]?.flat ?? fallback;
+
+  const optionCost = (catId: string, opt: CategoryOption): number | null =>
+    opt.included ? 0 : priceFor(`${catId}__${opt.id}`, opt.upgradeCost ?? 0, !!opt.priceTBD);
   const optionIsTBD = (catId: string, opt: CategoryOption) =>
     !opt.included && optionCost(catId, opt) === null;
 
-  const toggleItemPrice = (groupId: string, item: UpgradeToggleItem): number | null => {
-    const rate = sqftRates[`${groupId}__${item.id}`];
-    if (rate != null) return sqft ? Math.round(rate * sqft) : null;
-    return item.price;
-  };
+  const toggleItemPrice = (groupId: string, item: UpgradeToggleItem): number | null =>
+    priceFor(`${groupId}__${item.id}`, item.price, false);
+
+  const quantityUnitPrice = (groupId: string, item: UpgradeQuantityItem): number =>
+    flatFor(`${groupId}__${item.id}`, item.pricePerUnit);
 
   const lineFor = (cat: Category) => {
     const chosenId = selections[cat.id];
@@ -151,7 +167,10 @@ export default function SelectionsPortal({
     const key = `${group.id}__${floor.id}`;
     const chosenId = selections[key];
     const chosen = chosenId ? floor.options.find((o) => o.id === chosenId) ?? null : null;
-    const upgrade = chosen && !chosen.included ? chosen.upgradeCost ?? 0 : 0;
+    const upgrade =
+      chosen && !chosen.included
+        ? flatFor(`${group.id}__${chosen.id}`, chosen.upgradeCost ?? 0)
+        : 0;
     return { chosen, upgrade, key };
   };
 
@@ -162,7 +181,8 @@ export default function SelectionsPortal({
     const sel = upgradeSelections[group.id] || [];
     const { toggles, quantities } = decodeUpgradeEntries(sel);
     return group.items.reduce((sum, item) => {
-      if (item.kind === "quantity") return sum + item.pricePerUnit * (quantities[item.id] || 0);
+      if (item.kind === "quantity")
+        return sum + quantityUnitPrice(group.id, item) * (quantities[item.id] || 0);
       return sum + (toggles.has(item.id) ? toggleItemPrice(group.id, item) ?? 0 : 0);
     }, 0);
   };
@@ -549,7 +569,9 @@ export default function SelectionsPortal({
                               color: isChosen ? "#D6D2C6" : MUTED,
                             }}
                           >
-                            {opt.included ? "(standard)" : `(+${fmt(opt.upgradeCost ?? 0)})`}
+                            {opt.included
+                              ? "(standard)"
+                              : `(+${fmt(flatFor(`${active.id}__${opt.id}`, opt.upgradeCost ?? 0))})`}
                           </span>
                         </button>
                       );
@@ -569,6 +591,7 @@ export default function SelectionsPortal({
                 if (item.kind === "quantity") {
                   const { quantities } = decodeUpgradeEntries(sel);
                   const qty = quantities[item.id] || 0;
+                  const unitPrice = quantityUnitPrice(active.id, item);
                   return (
                     <div
                       key={item.id}
@@ -584,8 +607,8 @@ export default function SelectionsPortal({
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
                           <span style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</span>
                           <span style={{ fontFamily: mono, fontSize: 13, color: BRASS }}>
-                            {fmt(item.pricePerUnit)} / {item.unit}
-                            {qty > 0 ? ` — ${fmt(item.pricePerUnit * qty)} total` : ""}
+                            {fmt(unitPrice)} / {item.unit}
+                            {qty > 0 ? ` — ${fmt(unitPrice * qty)} total` : ""}
                           </span>
                         </div>
                         <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
@@ -918,7 +941,8 @@ export default function SelectionsPortal({
                         </div>
                         <div style={{ fontFamily: mono, fontSize: 12.5, color: BRASS }}>
                           {(() => {
-                            if (item.kind === "quantity") return `+${fmt(item.pricePerUnit * qty)}`;
+                            if (item.kind === "quantity")
+                              return `+${fmt(quantityUnitPrice(group.id, item) * qty)}`;
                             const cost = toggleItemPrice(group.id, item);
                             return cost === null ? "Price TBD" : `+${fmt(cost)}`;
                           })()}

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { readSqftRates } from "@/lib/pricing";
+import { readPricing } from "@/lib/pricing";
 import SelectionsPortal from "@/components/SelectionsPortal";
 import type { Buyer, SelectionsMap, UpgradeSelectionsMap, NotesMap } from "@/lib/types";
 
@@ -30,7 +30,7 @@ export default async function PortalPage({
 
   if (!buyer) notFound();
 
-  const [{ data: selectionRows }, { data: upgradeRows }, { data: noteRows }, sqftRates] =
+  const [{ data: selectionRows }, { data: upgradeRows }, { data: noteRows }, pricing] =
     await Promise.all([
       supabaseAdmin
         .from("selections")
@@ -45,7 +45,7 @@ export default async function PortalPage({
         .select("category_id, author, text, created_at")
         .eq("buyer_id", buyer.id)
         .order("created_at", { ascending: true }),
-      readSqftRates(),
+      readPricing(),
     ]);
 
   const initialSelections: SelectionsMap = {};
@@ -71,7 +71,7 @@ export default async function PortalPage({
       initialSelections={initialSelections}
       initialUpgradeSelections={initialUpgradeSelections}
       initialNotes={initialNotes}
-      sqftRates={sqftRates}
+      pricing={pricing}
     />
   );
 }
