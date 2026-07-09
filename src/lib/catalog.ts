@@ -33,6 +33,9 @@ export const mono = "'IBM Plex Mono', monospace";
 
 export const fmt = (n: number) => `$${Math.round(Math.abs(n)).toLocaleString()}`;
 
+// Per-sqft pricing lives in data/pricing.xlsx (builder-editable), keyed by
+// "<categoryOrGroupId>__<optionOrItemId>" — a rate there overrides the flat
+// price below and computes as rate × the buyer's house size.
 export interface CategoryOption {
   id: string;
   name: string;

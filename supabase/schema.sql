@@ -9,6 +9,7 @@ create table if not exists buyers (
   community text not null default 'Meadows at Briarcliff',
   lot text not null,
   family_name text not null,
+  sqft integer,
   signer_name text,
   signed_at timestamptz,
   created_at timestamptz not null default now()

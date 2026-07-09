@@ -33,7 +33,10 @@
       "Bash(curl -s -H \"Authorization: Bearer re_CFjwdTVb_juumfrPz2PoDXMEskMxfwC76\" \"https://api.resend.com/emails?limit=5\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -u \"admin:wrongpass\" \"https://meadows-selections.vercel.app/\")",
       "Bash(python3 -c ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\Python\" -ErrorAction SilentlyContinue | Select-Object Name; $py = Get-Command py -ErrorAction SilentlyContinue; if \\($py\\) { py --version } else { Write-Output \"no py launcher\" })",
+      "PowerShell(py -m pip install openpyxl --quiet 2>&1)",
+      "PowerShell($exe = \"$env:LOCALAPPDATA\\\\Programs\\\\Python\\\\Python314\\\\python.exe\"; & $exe --version; & $exe -m pip --version 2>&1 | Select-Object -First 2)"
     ]
   }
 }

@@ -87,7 +87,8 @@ export async function addNote(
 export async function createBuyer(
   familyName: string,
   lot: string,
-  community: string
+  community: string,
+  sqft?: number | null
 ): Promise<Buyer> {
   const trimmedName = familyName.trim();
   const trimmedLot = lot.trim();
@@ -104,12 +105,19 @@ export async function createBuyer(
       community: community.trim() || "Meadows at Briarcliff",
       lot: trimmedLot,
       family_name: trimmedName,
+      sqft: sqft && sqft > 0 ? Math.round(sqft) : null,
     })
-    .select("id, token, community, lot, family_name, signer_name, signed_at")
+    .select("id, token, community, lot, family_name, sqft, signer_name, signed_at")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Failed to create buyer.");
 
   return data;
+}
+
+export async function updateBuyerSqft(token: string, sqft: number | null) {
+  const value = sqft && sqft > 0 ? Math.round(sqft) : null;
+  const { error } = await supabaseAdmin.from("buyers").update({ sqft: value }).eq("token", token);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteBuyer(token: string) {

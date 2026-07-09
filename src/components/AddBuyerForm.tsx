@@ -9,6 +9,7 @@ export default function AddBuyerForm() {
   const [familyName, setFamilyName] = useState("");
   const [lot, setLot] = useState("");
   const [community, setCommunity] = useState("Meadows at Briarcliff");
+  const [sqft, setSqft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -19,10 +20,11 @@ export default function AddBuyerForm() {
     setError(null);
     setCreatedLink(null);
     try {
-      const buyer = await createBuyer(familyName, lot, community);
+      const buyer = await createBuyer(familyName, lot, community, sqft ? Number(sqft) : null);
       setCreatedLink(`${window.location.origin}/portal/${buyer.token}`);
       setFamilyName("");
       setLot("");
+      setSqft("");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -60,6 +62,16 @@ export default function AddBuyerForm() {
             value={community}
             onChange={(e) => setCommunity(e.target.value)}
             className="rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-zinc-500">House size (sq ft)</label>
+          <input
+            value={sqft}
+            onChange={(e) => setSqft(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="2400"
+            inputMode="numeric"
+            className="w-28 rounded border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 placeholder:text-zinc-400"
           />
         </div>
         <button

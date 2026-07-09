@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const { data: buyers } = await supabaseAdmin
     .from("buyers")
-    .select("token, community, lot, family_name, signed_at")
+    .select("token, community, lot, family_name, sqft, signed_at")
     .order("created_at", { ascending: false });
 
   return (
@@ -39,6 +39,7 @@ export default async function Home() {
               familyName={b.family_name}
               lot={b.lot}
               community={b.community}
+              sqft={b.sqft}
               signed={!!b.signed_at}
             />
           ))}

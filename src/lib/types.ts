@@ -4,6 +4,7 @@ export interface Buyer {
   community: string;
   lot: string;
   family_name: string;
+  sqft: number | null;
   signer_name: string | null;
   signed_at: string | null;
 }

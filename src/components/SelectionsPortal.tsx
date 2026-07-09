@@ -31,6 +31,7 @@ import {
   type FloorGroup,
   type FloorsUpgradeGroup,
   type UpgradeGroup,
+  type UpgradeToggleItem,
   type ActiveEntity,
 } from "@/lib/catalog";
 import { chooseSelection, setUpgradeSelection, addNote, signSelections } from "@/lib/actions";
@@ -77,6 +78,8 @@ interface Props {
   initialSelections: SelectionsMap;
   initialUpgradeSelections: UpgradeSelectionsMap;
   initialNotes: NotesMap;
+  // From data/pricing.xlsx: "<categoryOrGroupId>__<optionOrItemId>" → $/sqft.
+  sqftRates: Record<string, number>;
 }
 
 export default function SelectionsPortal({
@@ -84,6 +87,7 @@ export default function SelectionsPortal({
   initialSelections,
   initialUpgradeSelections,
   initialNotes,
+  sqftRates,
 }: Props) {
   const [activeId, setActiveId] = useState(CATEGORIES[0].id);
   const [selections, setSelections] = useState<SelectionsMap>(initialSelections);
@@ -104,12 +108,33 @@ export default function SelectionsPortal({
     (UPGRADE_GROUPS.find((g) => g.id === activeId) as ActiveEntity);
   const madeCount = Object.keys(selections).length;
 
+  const sqft = buyer.sqft;
+
+  // Cost of picking an option; null means it can't be priced yet (flat TBD,
+  // or per-sqft with no house size entered for this buyer). A rate in the
+  // pricing sheet overrides the option's flat price.
+  const optionCost = (catId: string, opt: CategoryOption): number | null => {
+    if (opt.included) return 0;
+    const rate = sqftRates[`${catId}__${opt.id}`];
+    if (rate != null) return sqft ? Math.round(rate * sqft) : null;
+    if (opt.priceTBD) return null;
+    return opt.upgradeCost ?? 0;
+  };
+  const optionIsTBD = (catId: string, opt: CategoryOption) =>
+    !opt.included && optionCost(catId, opt) === null;
+
+  const toggleItemPrice = (groupId: string, item: UpgradeToggleItem): number | null => {
+    const rate = sqftRates[`${groupId}__${item.id}`];
+    if (rate != null) return sqft ? Math.round(rate * sqft) : null;
+    return item.price;
+  };
+
   const lineFor = (cat: Category) => {
     const chosenId = selections[cat.id];
     const chosen: CategoryOption | null = chosenId
       ? cat.options.find((o) => o.id === chosenId) ?? null
       : null;
-    const upgrade = chosen && !chosen.included ? chosen.upgradeCost ?? 0 : 0;
+    const upgrade = chosen ? optionCost(cat.id, chosen) ?? 0 : 0;
     return { chosen, upgrade };
   };
 
@@ -138,13 +163,27 @@ export default function SelectionsPortal({
     const { toggles, quantities } = decodeUpgradeEntries(sel);
     return group.items.reduce((sum, item) => {
       if (item.kind === "quantity") return sum + item.pricePerUnit * (quantities[item.id] || 0);
-      return sum + (toggles.has(item.id) ? item.price : 0);
+      return sum + (toggles.has(item.id) ? toggleItemPrice(group.id, item) ?? 0 : 0);
     }, 0);
   };
 
   const allUpgradesTotal = UPGRADE_GROUPS.reduce((sum, g) => sum + upgradeGroupTotal(g), 0);
   const grandUpgradesTotal = totals.upgrades + allUpgradesTotal;
-  const hasTBDSelected = CATEGORIES.some((cat) => lineFor(cat).chosen?.priceTBD);
+  const hasTBDSelected =
+    CATEGORIES.some((cat) => {
+      const { chosen } = lineFor(cat);
+      return chosen !== null && optionIsTBD(cat.id, chosen);
+    }) ||
+    UPGRADE_GROUPS.some((group) => {
+      if (group.floors) return false;
+      const { toggles } = decodeUpgradeEntries(upgradeSelections[group.id] || []);
+      return group.items.some(
+        (item) =>
+          item.kind !== "quantity" &&
+          toggles.has(item.id) &&
+          toggleItemPrice(group.id, item) === null
+      );
+    });
 
   const upgradesSummary = grandUpgradesTotal > 0 && hasTBDSelected
     ? `+${fmt(grandUpgradesTotal)} in upgrades + price TBD items`
@@ -323,10 +362,10 @@ export default function SelectionsPortal({
                     style={{
                       fontFamily: mono,
                       fontSize: 10.5,
-                      color: chosen.priceTBD || upgrade > 0 ? BRASS : PINE,
+                      color: optionIsTBD(cat.id, chosen) || upgrade > 0 ? BRASS : PINE,
                     }}
                   >
-                    {chosen.priceTBD ? "TBD" : upgrade > 0 ? `+${fmt(upgrade)}` : "Incl."}
+                    {optionIsTBD(cat.id, chosen) ? "TBD" : upgrade > 0 ? `+${fmt(upgrade)}` : "Incl."}
                   </span>
                 )}
               </button>
@@ -457,11 +496,11 @@ export default function SelectionsPortal({
                         color: opt.included ? PINE : BRASS,
                       }}
                     >
-                      {opt.included
-                        ? "Complimentary"
-                        : opt.priceTBD
-                        ? "Price TBD"
-                        : `+${fmt(opt.upgradeCost ?? 0)} upgrade`}
+                      {(() => {
+                        if (opt.included) return "Complimentary";
+                        const cost = optionCost(active.id, opt);
+                        return cost === null ? "Price TBD" : `+${fmt(cost)} upgrade`;
+                      })()}
                     </div>
                   </button>
                 );
@@ -608,7 +647,11 @@ export default function SelectionsPortal({
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <span style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</span>
                         <span style={{ fontFamily: mono, fontSize: 13, color: BRASS }}>
-                          +{fmt(item.price)}{item.unit ? ` ${item.unit}` : ""}
+                          {(() => {
+                            const cost = toggleItemPrice(active.id, item);
+                            if (cost === null) return "Price TBD";
+                            return `+${fmt(cost)}${item.unit ? ` ${item.unit}` : ""}`;
+                          })()}
                         </span>
                       </div>
                       <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>
@@ -642,7 +685,7 @@ export default function SelectionsPortal({
                           Complimentary selection — no added cost
                         </span>
                       </>
-                    ) : chosen.priceTBD ? (
+                    ) : optionIsTBD(active.id, chosen) ? (
                       <>
                         <ArrowUpRight size={15} color={BRASS} />
                         <span style={{ fontFamily: mono, fontSize: 12, color: BRASS }}>
@@ -803,12 +846,12 @@ export default function SelectionsPortal({
                       style={{
                         fontFamily: mono,
                         fontSize: 12.5,
-                        color: !chosen ? MUTED : chosen.priceTBD || upgrade > 0 ? BRASS : PINE,
+                        color: !chosen ? MUTED : optionIsTBD(cat.id, chosen) || upgrade > 0 ? BRASS : PINE,
                       }}
                     >
                       {!chosen
                         ? "—"
-                        : chosen.priceTBD
+                        : optionIsTBD(cat.id, chosen)
                         ? "Price TBD"
                         : upgrade > 0
                         ? `+${fmt(upgrade)}`
@@ -874,7 +917,11 @@ export default function SelectionsPortal({
                           <div style={{ fontSize: 12, color: MUTED }}>{group.name}</div>
                         </div>
                         <div style={{ fontFamily: mono, fontSize: 12.5, color: BRASS }}>
-                          +{fmt(item.kind === "quantity" ? item.pricePerUnit * qty : item.price)}
+                          {(() => {
+                            if (item.kind === "quantity") return `+${fmt(item.pricePerUnit * qty)}`;
+                            const cost = toggleItemPrice(group.id, item);
+                            return cost === null ? "Price TBD" : `+${fmt(cost)}`;
+                          })()}
                         </div>
                       </div>
                     );
