@@ -167,11 +167,16 @@ export default function SelectionsPortal({
     const key = `${group.id}__${floor.id}`;
     const chosenId = selections[key];
     const chosen = chosenId ? floor.options.find((o) => o.id === chosenId) ?? null : null;
-    const upgrade =
-      chosen && !chosen.included
-        ? flatFor(`${group.id}__${chosen.id}`, chosen.upgradeCost ?? 0)
-        : 0;
-    return { chosen, upgrade, key };
+    let upgrade = 0;
+    let tbd = false;
+    if (chosen && !chosen.included) {
+      const cost = priceFor(`${group.id}__${chosen.id}`, chosen.upgradeCost ?? 0, false);
+      if (cost === null) tbd = true;
+      else upgrade = cost;
+    }
+    // "upgraded" = a non-standard ceiling is chosen, whether or not it's priced yet.
+    const upgraded = upgrade > 0 || tbd;
+    return { chosen, upgrade, tbd, upgraded, key };
   };
 
   const upgradeGroupTotal = (group: UpgradeGroup) => {
@@ -195,7 +200,7 @@ export default function SelectionsPortal({
       return chosen !== null && optionIsTBD(cat.id, chosen);
     }) ||
     UPGRADE_GROUPS.some((group) => {
-      if (group.floors) return false;
+      if (group.floors) return group.floors.some((f) => floorLineFor(group, f).tbd);
       const { toggles } = decodeUpgradeEntries(upgradeSelections[group.id] || []);
       return group.items.some(
         (item) =>
@@ -406,7 +411,7 @@ export default function SelectionsPortal({
             const statusText = group.floors
               ? (() => {
                   const upgraded = group.floors.filter(
-                    (f) => floorLineFor(group, f).upgrade > 0
+                    (f) => floorLineFor(group, f).upgraded
                   ).length;
                   return upgraded > 0
                     ? `${upgraded} floor${upgraded > 1 ? "s" : ""} upgraded`
@@ -569,9 +574,15 @@ export default function SelectionsPortal({
                               color: isChosen ? "#D6D2C6" : MUTED,
                             }}
                           >
-                            {opt.included
-                              ? "(standard)"
-                              : `(+${fmt(flatFor(`${active.id}__${opt.id}`, opt.upgradeCost ?? 0))})`}
+                            {(() => {
+                              if (opt.included) return "(standard)";
+                              const cost = priceFor(
+                                `${active.id}__${opt.id}`,
+                                opt.upgradeCost ?? 0,
+                                false
+                              );
+                              return cost === null ? "(price TBD)" : `(+${fmt(cost)})`;
+                            })()}
                           </span>
                         </button>
                       );
@@ -735,21 +746,40 @@ export default function SelectionsPortal({
               {(() => {
                 const groupTotal = upgradeGroupTotal(active);
                 const selCount = active.floors
-                  ? active.floors.filter((f) => floorLineFor(active, f).upgrade > 0).length
+                  ? active.floors.filter((f) => floorLineFor(active, f).upgraded).length
                   : (upgradeSelections[active.id] || []).length;
+                const groupHasTBD = active.floors
+                  ? active.floors.some((f) => floorLineFor(active, f).tbd)
+                  : (() => {
+                      const { toggles } = decodeUpgradeEntries(upgradeSelections[active.id] || []);
+                      return (active.items ?? []).some(
+                        (i) =>
+                          i.kind !== "quantity" &&
+                          toggles.has(i.id) &&
+                          toggleItemPrice(active.id, i) === null
+                      );
+                    })();
                 const label = active.floors
                   ? `${selCount} floor${selCount === 1 ? "" : "s"} upgraded`
                   : `${selCount} item${selCount === 1 ? "" : "s"} selected`;
+                const amount =
+                  groupTotal > 0 && groupHasTBD
+                    ? `+${fmt(groupTotal)} + price TBD`
+                    : groupTotal > 0
+                    ? `+${fmt(groupTotal)}`
+                    : groupHasTBD
+                    ? "price to be determined"
+                    : null;
                 return (
                   <div
                     className="flex items-center gap-2 px-3 py-2.5"
                     style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: 3 }}
                   >
-                    {groupTotal > 0 ? (
+                    {amount ? (
                       <>
                         <ArrowUpRight size={15} color={BRASS} />
                         <span style={{ fontFamily: mono, fontSize: 12, color: BRASS }}>
-                          {label} — +{fmt(groupTotal)}
+                          {label} — {amount}
                         </span>
                       </>
                     ) : (
@@ -899,7 +929,7 @@ export default function SelectionsPortal({
                 if (group.floors) {
                   return group.floors
                     .map((floor) => ({ floor, ...floorLineFor(group, floor) }))
-                    .filter((f) => f.upgrade > 0)
+                    .filter((f) => f.upgraded)
                     .map((f) => (
                       <div
                         key={`${group.id}-${f.floor.id}`}
@@ -913,7 +943,7 @@ export default function SelectionsPortal({
                           <div style={{ fontSize: 12, color: MUTED }}>{group.name}</div>
                         </div>
                         <div style={{ fontFamily: mono, fontSize: 12.5, color: BRASS }}>
-                          +{fmt(f.upgrade)}
+                          {f.tbd ? "Price TBD" : `+${fmt(f.upgrade)}`}
                         </div>
                       </div>
                     ));
